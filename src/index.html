@@ -27,7 +27,7 @@
   <div class="main-container">
     <!-- 웹뷰 영역 -->
     <div class="webview-container">
-      <webview id="webview" src="about:blank" webpreferences="contextIsolation=no, nodeIntegration=no"></webview>
+      <webview id="webview" src="about:blank" webpreferences="contextIsolation=no, nodeIntegration=no" allowpopups></webview>
       <div id="loading-overlay" class="loading-overlay hidden">
         <div class="spinner"></div>
         <span>Loading...</span>
@@ -103,9 +103,17 @@
         </div>
 
         <!-- 추가 도구 -->
-        <div class="btn-grid" style="margin-top: 8px;">
-          <button id="btn-pbox" class="btn" style="grid-column: span 2;">📦 P-Box View</button>
-          <button id="btn-abf" class="btn" style="grid-column: span 2;">🎨 ABF Editor</button>
+        <div class="form-group" style="margin-top: 8px;">
+          <label>P-Box Viewer</label>
+          <div class="input-with-btn">
+            <select id="ad-select" class="ad-select">
+              <option value="">광고를 선택하세요</option>
+            </select>
+            <button id="btn-pbox" class="icon-btn primary">📦</button>
+          </div>
+        </div>
+        <div class="btn-grid">
+          <button id="btn-abf" class="btn" style="grid-column: span 4;">🎨 ABF Editor</button>
         </div>
 
         <!-- 통계 -->

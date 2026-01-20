@@ -5,7 +5,7 @@
 // 국가별 설정
 const nationConfig = {
   kr: {
-    apiKey: '9e406957d45fcb6c6f38c2ada7bace91',
+    apiKey: 'dba132f6ab6a3e3d17a8d59e82105f4c',
     jsUrl: 'https://api.aedi.ai/common/js/v1/aedi-ad.js',
     cssUrl: 'https://api.aedi.ai/common/css/v1/aedi-ad.css'
   },
@@ -22,6 +22,7 @@ const state = {
   apiKey: nationConfig.kr.apiKey,
   selectedImages: [],
   imageSelectionMode: false,
+  selectionInterval: null,
   capturedAds: {},
   aediLoaded: false
 };
@@ -49,6 +50,7 @@ function initElements() {
   elements.statusBar = document.getElementById('status-bar');
   elements.statusText = document.getElementById('status-text');
   elements.adList = document.getElementById('ad-list');
+  elements.adSelect = document.getElementById('ad-select');
   elements.statAds = document.getElementById('stat-ads');
   elements.statIntervals = document.getElementById('stat-intervals');
   elements.statAedi = document.getElementById('stat-aedi');
@@ -199,37 +201,78 @@ function updateAdList() {
 // 에이전트 스크립트를 웹뷰에 주입
 async function injectAgent() {
   elements.agentPanel.classList.remove('hidden');
+  updateStatus('AEDI 스크립트 주입 중...', 'info');
 
-  const config = nationConfig[state.nation];
+  try {
+    // 로컬 AEDI 스크립트 로드
+    const loadResult = await window.electronAPI.loadAediScripts(state.nation);
 
-  // AEDI CSS 주입
-  await elements.webview.executeJavaScript(`
-    (function() {
-      if (!document.querySelector('link[data-aedi-css]')) {
-        const css = document.createElement('link');
-        css.rel = 'stylesheet';
-        css.href = '${config.cssUrl}';
-        css.setAttribute('data-aedi-css', '${state.nation}');
-        document.head.appendChild(css);
-      }
-    })();
-  `);
+    if (!loadResult.success) {
+      updateStatus('스크립트 로드 실패: ' + loadResult.error, 'error');
+      return;
+    }
 
-  // AEDI JS 주입
-  await elements.webview.executeJavaScript(`
-    (function() {
-      if (!document.querySelector('script[data-aedi-script]')) {
-        const script = document.createElement('script');
-        script.src = '${config.jsUrl}';
-        script.setAttribute('data-aedi-script', '${state.nation}');
-        document.head.appendChild(script);
-      }
-    })();
-  `);
+    console.log('[injectAgent] Script length:', loadResult.js.length, 'CSS length:', loadResult.css.length);
 
-  state.aediLoaded = true;
-  updateUI();
-  updateStatus('AEDI ' + (state.nation === 'kr' ? '한국' : '태국') + ' 주입 완료', 'success');
+    // Webview에 CSS 주입
+    await elements.webview.executeJavaScript(`
+      (function() {
+        if (!document.querySelector('style[data-aedi-css]')) {
+          const style = document.createElement('style');
+          style.setAttribute('data-aedi-css', '${state.nation}');
+          style.textContent = ${JSON.stringify(loadResult.css)};
+          document.head.appendChild(style);
+          console.log('[AEDI Agent] CSS injected');
+        }
+      })();
+    `);
+
+    // Webview에 JS 직접 실행 (eval 사용)
+    const result = await elements.webview.executeJavaScript(`
+      (function() {
+        try {
+          // 이미 로드되었는지 확인
+          if (window.aedi_script) {
+            console.log('[AEDI Agent] Script already loaded');
+            return { alreadyLoaded: true, hasAedi: typeof Aedi !== 'undefined' };
+          }
+
+          // 스크립트 직접 실행 (indirect eval로 전역 스코프에서 실행)
+          console.log('[AEDI Agent] Executing script via indirect eval...');
+          (0, eval)(${JSON.stringify(loadResult.js)});
+          console.log('[AEDI Agent] Script executed in global scope');
+
+          // 마커 추가 (중복 실행 방지)
+          const marker = document.createElement('script');
+          marker.setAttribute('data-aedi-script', '${state.nation}');
+          marker.textContent = '// AEDI Script Marker';
+          document.head.appendChild(marker);
+
+          // 확인
+          console.log('[AEDI Agent] After execution:');
+          console.log('  - window.aedi_script:', window.aedi_script);
+          console.log('  - typeof Aedi:', typeof Aedi);
+
+          return {
+            aediScript: window.aedi_script,
+            hasAedi: typeof Aedi !== 'undefined'
+          };
+        } catch (e) {
+          console.error('[AEDI Agent] Execution error:', e);
+          return { error: e.message };
+        }
+      })();
+    `);
+
+    console.log('[injectAgent] Result:', result);
+
+    state.aediLoaded = true;
+    updateUI();
+    updateStatus('AEDI ' + (state.nation === 'kr' ? '한국' : '태국') + ' 주입 완료', 'success');
+  } catch (e) {
+    updateStatus('주입 에러: ' + e.message, 'error');
+    console.error('[injectAgent Error]', e);
+  }
 }
 
 // 이미지 선택 모드
@@ -244,7 +287,7 @@ async function toggleImageSelection() {
 async function startImageSelectionMode() {
   state.imageSelectionMode = true;
   document.getElementById('btn-select-images').textContent = '✓ 완료';
-  updateStatus('이미지를 클릭하여 선택하세요 (ESC로 종료)', 'info');
+  updateStatus('이미지를 클릭하여 선택하세요 (완료 버튼 또는 ESC로 종료)', 'info');
 
   await elements.webview.executeJavaScript(`
     (function() {
@@ -267,9 +310,9 @@ async function startImageSelectionMode() {
             img.style.outline = '3px solid #00d4ff';
           }
 
-          // 선택된 이미지 수 전송
+          // 선택된 이미지 수 콘솔에 출력
           const count = document.querySelectorAll('img[data-aedi-selected]').length;
-          require('electron').ipcRenderer.sendToHost('image-selected', { count });
+          console.log('[AEDI Agent] Selected images:', count);
         }
       };
 
@@ -277,7 +320,7 @@ async function startImageSelectionMode() {
         if (e.key === 'Escape') {
           window._aediSelectMode = false;
           document.body.style.cursor = '';
-          require('electron').ipcRenderer.sendToHost('image-selected', { done: true });
+          console.log('[AEDI Agent] Selection mode ended by ESC');
         }
       };
 
@@ -285,11 +328,31 @@ async function startImageSelectionMode() {
       document.addEventListener('keydown', window._aediKeyHandler);
     })();
   `);
+
+  // 주기적으로 선택된 이미지 수 업데이트
+  state.selectionInterval = setInterval(async () => {
+    if (!state.imageSelectionMode) {
+      clearInterval(state.selectionInterval);
+      return;
+    }
+    try {
+      const count = await elements.webview.executeJavaScript(`
+        document.querySelectorAll('img[data-aedi-selected]').length;
+      `);
+      elements.selectedCount.textContent = count > 0 ? count + '개 이미지 선택됨' : '선택된 이미지 없음';
+    } catch (e) {}
+  }, 500);
 }
 
 async function stopImageSelectionMode() {
   state.imageSelectionMode = false;
   document.getElementById('btn-select-images').textContent = '🎯';
+
+  // 선택 업데이트 인터벌 정리
+  if (state.selectionInterval) {
+    clearInterval(state.selectionInterval);
+    state.selectionInterval = null;
+  }
 
   const result = await elements.webview.executeJavaScript(`
     (function() {
@@ -313,14 +376,6 @@ async function stopImageSelectionMode() {
   updateStatus(result + '개 이미지 선택됨', 'success');
 }
 
-function handleImageSelected(data) {
-  if (data.done) {
-    stopImageSelectionMode();
-  } else if (data.count !== undefined) {
-    elements.selectedCount.textContent = `${data.count}개 이미지 선택됨`;
-  }
-}
-
 async function clearImageSelection() {
   state.selectedImages = [];
   elements.imgSelector.value = '';
@@ -337,32 +392,10 @@ async function clearImageSelection() {
   updateStatus('이미지 선택 초기화됨', 'info');
 }
 
-// 광고 제어
+// 광고 제어 - Save 버튼: 스크립트 재주입
 async function saveConfig() {
-  const config = nationConfig[state.nation];
-
-  await elements.webview.executeJavaScript(`
-    (function() {
-      if (!document.querySelector('link[data-aedi-css]')) {
-        const css = document.createElement('link');
-        css.rel = 'stylesheet';
-        css.href = '${config.cssUrl}';
-        css.setAttribute('data-aedi-css', '${state.nation}');
-        document.head.appendChild(css);
-      }
-
-      if (!document.querySelector('script[data-aedi-script]')) {
-        const script = document.createElement('script');
-        script.src = '${config.jsUrl}';
-        script.setAttribute('data-aedi-script', '${state.nation}');
-        document.head.appendChild(script);
-      }
-    })();
-  `);
-
-  state.aediLoaded = true;
-  updateUI();
-  updateStatus('설정 저장 및 AEDI 로드 완료', 'success');
+  // Agent 버튼과 동일하게 스크립트 주입
+  await injectAgent();
 }
 
 async function startAd() {
@@ -373,92 +406,248 @@ async function startAd() {
 
   const dateValue = elements.dateValue.value;
 
-  await elements.webview.executeJavaScript(`
-    (function() {
-      if (typeof aedi === 'undefined') {
-        console.log('[AEDI Agent] aedi not loaded');
-        return;
-      }
+  try {
+    const result = await elements.webview.executeJavaScript(`
+      (function() {
+        try {
+          // Aedi 클래스 확인
+          if (typeof Aedi === 'undefined') {
+            return { success: false, error: 'Aedi not loaded' };
+          }
 
-      const images = document.querySelectorAll('img[data-aedi-ad]');
-      images.forEach((img, i) => {
-        const adId = 'ad_' + i;
-        aedi.adopen2(
-          '${state.apiKey}',
-          adId,
-          img,
-          '${dateValue}'
-        );
-        console.log('[AEDI Agent] Started ad:', adId);
-      });
-    })();
-  `);
+          const images = document.querySelectorAll('img[data-aedi-ad]');
+          if (images.length === 0) {
+            return { success: false, error: 'No images with data-aedi-ad found' };
+          }
 
-  updateStatus('광고 시작됨', 'success');
+          // Aedi 인스턴스 생성 (없으면 생성)
+          if (!window._aediInstance) {
+            window._aediInstance = new Aedi();
+            console.log('[AEDI Agent] Created new Aedi instance');
+          }
+
+          const aedi = window._aediInstance;
+
+          // AediAgent 설정 (p_box 중심 크롭 기능 활성화)
+          if (typeof window.AediAgent === 'undefined') {
+            window.AediAgent = {
+              abfData: {},
+              adResponseData: {},
+              log: function(msg) { console.log('[AediAgent]', msg); }
+            };
+            console.log('[AEDI Agent] AediAgent initialized for p_box centering');
+          }
+
+          try {
+            // adOpen(apiKey, images, writingTime, null)
+            console.log('[AEDI Agent] Calling adOpen with:', '${state.apiKey}', images.length, 'images');
+            aedi.adOpen(
+              '${state.apiKey}',
+              images,
+              '${dateValue}',
+              null
+            );
+            console.log('[AEDI Agent] Started ads for', images.length, 'images');
+            return { success: true, count: images.length };
+          } catch (e) {
+            console.error('[AEDI Agent] Error starting ads:', e);
+            return { success: false, error: e.message };
+          }
+        } catch (e) {
+          return { success: false, error: e.message };
+        }
+      })();
+    `);
+
+    console.log('[startAd] Result:', result);
+
+    if (result.success) {
+      updateStatus('광고 시작됨 (' + (result.count || 0) + '개 이미지)', 'success');
+      // 광고 목록 업데이트
+      setTimeout(() => updateAdSelect(), 1000);
+    } else {
+      updateStatus('광고 시작 실패: ' + result.error, 'error');
+    }
+  } catch (e) {
+    updateStatus('실행 에러: ' + e.message, 'error');
+    console.error('[startAd Error]', e);
+  }
+}
+
+// 광고 선택 드롭다운 업데이트
+async function updateAdSelect() {
+  try {
+    const adIds = await elements.webview.executeJavaScript(`
+      (function() {
+        const aedi = window._aediInstance;
+        if (!aedi || !aedi.canvas) return [];
+        return Object.keys(aedi.canvas);
+      })();
+    `);
+
+    console.log('[updateAdSelect] Ad IDs:', adIds);
+
+    // 드롭다운 업데이트
+    elements.adSelect.innerHTML = '<option value="">광고를 선택하세요</option>';
+    adIds.forEach(adId => {
+      const option = document.createElement('option');
+      option.value = adId;
+      option.textContent = adId;
+      elements.adSelect.appendChild(option);
+    });
+
+    // 통계 업데이트
+    elements.statAds.textContent = adIds.length;
+  } catch (e) {
+    console.error('[updateAdSelect Error]', e);
+  }
 }
 
 async function stopAd() {
-  await elements.webview.executeJavaScript(`
-    (function() {
-      if (typeof aedi !== 'undefined' && aedi.intervals) {
-        Object.keys(aedi.intervals).forEach(key => {
-          clearInterval(aedi.intervals[key]);
-          delete aedi.intervals[key];
-        });
-      }
+  try {
+    const result = await elements.webview.executeJavaScript(`
+      (function() {
+        try {
+          let stoppedCount = 0;
 
-      document.querySelectorAll('.aedi-container, [id^="aedi-"]').forEach(el => {
-        el.remove();
-      });
+          // Aedi 인스턴스의 adCloseAll 호출
+          if (window._aediInstance && typeof window._aediInstance.adCloseAll === 'function') {
+            window._aediInstance.adCloseAll();
+            console.log('[AEDI Agent] Called adCloseAll');
+          }
 
-      console.log('[AEDI Agent] Ads stopped');
-    })();
-  `);
+          // Aedi 인스턴스의 interval 정리
+          if (window._aediInstance && window._aediInstance.interval) {
+            Object.keys(window._aediInstance.interval).forEach(key => {
+              clearInterval(window._aediInstance.interval[key]);
+              delete window._aediInstance.interval[key];
+              stoppedCount++;
+            });
+          }
 
-  updateStatus('광고 중지됨', 'info');
+          // Aedi 인스턴스의 canvas, link 정리
+          if (window._aediInstance) {
+            if (window._aediInstance.canvas) {
+              Object.keys(window._aediInstance.canvas).forEach(key => {
+                if (window._aediInstance.canvas[key] && window._aediInstance.canvas[key].remove) {
+                  window._aediInstance.canvas[key].remove();
+                }
+                delete window._aediInstance.canvas[key];
+              });
+            }
+            if (window._aediInstance.link) {
+              Object.keys(window._aediInstance.link).forEach(key => {
+                if (window._aediInstance.link[key] && window._aediInstance.link[key].remove) {
+                  window._aediInstance.link[key].remove();
+                }
+                delete window._aediInstance.link[key];
+              });
+            }
+          }
+
+          // AEDI 관련 DOM 요소 제거
+          const selectors = [
+            '.aedi-container',
+            '[id^="aedi-"]',
+            '[class^="aedi-"]',
+            '.pxButton'
+          ];
+          let removedCount = 0;
+          selectors.forEach(sel => {
+            document.querySelectorAll(sel).forEach(el => {
+              el.remove();
+              removedCount++;
+            });
+          });
+
+          // Aedi 인스턴스 리셋
+          window._aediInstance = null;
+
+          console.log('[AEDI Agent] Ads stopped, removed:', removedCount);
+          return { success: true, stoppedCount, removedElements: removedCount };
+        } catch (e) {
+          return { success: false, error: e.message };
+        }
+      })();
+    `);
+
+    if (result.success) {
+      updateStatus('광고 중지됨 (제거: ' + result.removedElements + '개)', 'info');
+    } else {
+      updateStatus('중지 실패: ' + result.error, 'error');
+    }
+  } catch (e) {
+    updateStatus('실행 에러: ' + e.message, 'error');
+    console.error('[stopAd Error]', e);
+  }
 }
 
 async function restartAd() {
+  updateStatus('재시작 중...', 'info');
   await stopAd();
-  setTimeout(() => startAd(), 500);
+  // 500ms 대기 후 시작
+  await new Promise(resolve => setTimeout(resolve, 500));
+  await startAd();
 }
 
 // P-Box Viewer
 async function openPBoxViewer() {
-  // 웹뷰에서 광고 데이터 수집
-  const adData = await elements.webview.executeJavaScript(`
-    (function() {
-      const data = [];
-      if (typeof aedi !== 'undefined') {
-        Object.keys(aedi.canvas || {}).forEach(adId => {
-          // adResponseData에서 데이터 가져오기 시도
-          const responseData = window.AediAgent?.adResponseData?.[adId] || {};
-          data.push({
-            adId: adId,
-            img_url: responseData.img_url || '',
-            p_box: responseData.p_box || null
-          });
-        });
-      }
-      return data;
-    })();
-  `);
+  // 선택된 광고 ID 가져오기
+  const selectedAdId = elements.adSelect.value;
 
-  if (adData.length === 0) {
-    updateStatus('표시할 광고 데이터가 없습니다', 'error');
+  if (!selectedAdId) {
+    updateStatus('광고를 선택해주세요', 'error');
     return;
   }
 
-  // 첫 번째 광고 데이터로 P-Box Viewer 열기
-  const firstAd = adData[0];
-  if (firstAd.img_url && firstAd.p_box) {
+  // 웹뷰에서 선택된 광고 데이터 가져오기
+  const adData = await elements.webview.executeJavaScript(`
+    (function() {
+      const aedi = window._aediInstance;
+      const adId = '${selectedAdId}';
+
+      if (!aedi) {
+        return { error: 'No Aedi instance found' };
+      }
+
+      // Aedi 인스턴스에서 데이터 찾기
+      const responseData = aedi.adResponseData?.[adId] ||
+                          aedi.responseData?.[adId] ||
+                          aedi.data?.[adId] ||
+                          null;
+
+      console.log('[AEDI Agent] Response data for', adId, ':', responseData);
+
+      if (!responseData) {
+        // Aedi 인스턴스의 모든 속성 확인
+        console.log('[AEDI Agent] Aedi instance keys:', Object.keys(aedi));
+        return { error: 'No response data for ' + adId };
+      }
+
+      return {
+        adId: adId,
+        img_url: responseData.img_url || '',
+        p_box: responseData.p_box || null
+      };
+    })();
+  `);
+
+  console.log('[openPBoxViewer] Ad data:', adData);
+
+  if (adData.error) {
+    updateStatus(adData.error, 'error');
+    return;
+  }
+
+  if (adData.img_url && adData.p_box) {
     window.electronAPI.openPBoxViewer({
-      adId: firstAd.adId,
-      img: firstAd.img_url,
-      pbox: firstAd.p_box
+      adId: adData.adId,
+      img: adData.img_url,
+      pbox: adData.p_box
     });
+    updateStatus('P-Box Viewer 열림: ' + adData.adId, 'success');
   } else {
-    updateStatus('P-Box 데이터가 없습니다', 'error');
+    updateStatus('P-Box 데이터가 없습니다 (img_url: ' + !!adData.img_url + ', p_box: ' + !!adData.p_box + ')', 'error');
   }
 }
 

@@ -1,8 +1,24 @@
-const { app, BrowserWindow, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, session, net } = require('electron');
 const path = require('path');
+const fs = require('fs');
 
 let mainWindow;
 let pboxViewerWindow;
+
+// CSP 헤더 제거 (webview에서 외부 스크립트 로드 허용)
+function setupCSPBypass() {
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    const responseHeaders = { ...details.responseHeaders };
+
+    // CSP 헤더 제거
+    delete responseHeaders['content-security-policy'];
+    delete responseHeaders['Content-Security-Policy'];
+    delete responseHeaders['x-content-security-policy'];
+    delete responseHeaders['X-Content-Security-Policy'];
+
+    callback({ responseHeaders });
+  });
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -13,6 +29,7 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
+      webviewTag: true,
       preload: path.join(__dirname, 'preload.js')
     },
     icon: path.join(__dirname, '../assets/icon.png'),
@@ -74,8 +91,70 @@ ipcMain.handle('open-external-url', (event, url) => {
   shell.openExternal(url);
 });
 
+// 외부 스크립트 fetch (CORS 우회)
+ipcMain.handle('fetch-script', async (event, url) => {
+  return new Promise((resolve) => {
+    const request = net.request(url);
+
+    let data = '';
+
+    request.on('response', (response) => {
+      if (response.statusCode !== 200) {
+        resolve({ success: false, error: `HTTP ${response.statusCode}` });
+        return;
+      }
+
+      response.on('data', (chunk) => {
+        data += chunk.toString();
+      });
+
+      response.on('end', () => {
+        resolve({ success: true, data });
+      });
+
+      response.on('error', (err) => {
+        resolve({ success: false, error: err.message });
+      });
+    });
+
+    request.on('error', (err) => {
+      resolve({ success: false, error: err.message });
+    });
+
+    request.end();
+  });
+});
+
+// 로컬 AEDI 스크립트 로드
+ipcMain.handle('load-aedi-scripts', async (event, nation) => {
+  try {
+    const aediDir = path.join(__dirname, 'aedi');
+    const suffix = nation === 'th' ? '-th' : '';
+
+    const cssPath = path.join(aediDir, `aedi-ad${suffix}.css`);
+    const jsPath = path.join(aediDir, `aedi-ad${suffix}.js`);
+
+    const cssContent = fs.readFileSync(cssPath, 'utf-8');
+    const jsContent = fs.readFileSync(jsPath, 'utf-8');
+
+    return {
+      success: true,
+      css: cssContent,
+      js: jsContent
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: err.message
+    };
+  }
+});
+
 // 앱 준비 완료
 app.whenReady().then(() => {
+  // CSP 우회 제거 - 로컬 파일 사용으로 불필요
+  // setupCSPBypass();
+
   createWindow();
 
   app.on('activate', () => {

@@ -500,3 +500,25 @@ webview {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255,255,255,0.3);
 }
+
+/* 광고 선택 드롭다운 */
+.ad-select {
+  flex: 1;
+  padding: 8px 10px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #eee;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.ad-select:focus {
+  outline: none;
+  border-color: #00d4ff;
+}
+
+.ad-select option {
+  background: #1a1a2e;
+  color: #eee;
+}
