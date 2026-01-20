@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>P-Box Coordinate Viewer</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      padding: 20px;
+      margin: 0;
+    }
+    h1 {
+      color: #00d4ff;
+      margin-bottom: 20px;
+    }
+    .container {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .input-panel {
+      background: #16213e;
+      padding: 20px;
+      border-radius: 12px;
+      min-width: 350px;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      color: #888;
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+    input[type="text"], input[type="number"] {
+      width: 100%;
+      padding: 10px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #eee;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    input:focus {
+      outline: none;
+      border-color: #00d4ff;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #00d4ff;
+      color: #000;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    button:hover {
+      background: #00b8e6;
+    }
+    .image-panel {
+      flex: 1;
+      min-width: 400px;
+    }
+    .image-container {
+      position: relative;
+      display: inline-block;
+      background: #222;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    #preview-image {
+      max-width: 100%;
+      max-height: 600px;
+      display: block;
+    }
+    .pbox-overlay {
+      position: absolute;
+      border: 3px solid #ff0000;
+      background: rgba(255, 0, 0, 0.1);
+      pointer-events: none;
+    }
+    .pbox-label {
+      position: absolute;
+      top: -25px;
+      left: 0;
+      background: #ff0000;
+      color: #fff;
+      padding: 2px 8px;
+      font-size: 12px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+    .info-box {
+      margin-top: 15px;
+      padding: 15px;
+      background: rgba(0, 212, 255, 0.1);
+      border-radius: 8px;
+      font-size: 13px;
+    }
+    .info-box h3 {
+      margin: 0 0 10px 0;
+      color: #00d4ff;
+      font-size: 14px;
+    }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 5px;
+    }
+    .info-label {
+      color: #888;
+    }
+    .info-value {
+      color: #fff;
+      font-family: monospace;
+    }
+    .canvas-preview {
+      margin-top: 20px;
+      padding: 15px;
+      background: #16213e;
+      border-radius: 8px;
+    }
+    .canvas-preview h3 {
+      margin: 0 0 15px 0;
+      color: #00d4ff;
+      font-size: 14px;
+    }
+    #crop-canvas {
+      border: 2px solid #00d4ff;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <h1>P-Box Coordinate Viewer</h1>
+
+  <div class="container">
+    <div class="input-panel">
+      <div class="form-group" id="ad-id-group" style="display: none;">
+        <label>Ad ID</label>
+        <input type="text" id="ad-id" readonly style="background: rgba(0,212,255,0.1); color: #00d4ff;">
+      </div>
+
+      <div class="form-group">
+        <label>Image URL</label>
+        <input type="text" id="image-url" placeholder="https://example.com/image.jpg">
+      </div>
+
+      <div class="form-group">
+        <label>P-Box Coordinates (JSON Array)</label>
+        <input type="text" id="pbox-coords" placeholder="[x_min, y_min, x_max, y_max]">
+      </div>
+
+      <button onclick="loadImage()">Load & Draw Box</button>
+
+      <div class="info-box" id="info-box" style="display: none;">
+        <h3>Calculated Values</h3>
+        <div class="info-row">
+          <span class="info-label">Image Size:</span>
+          <span class="info-value" id="info-img-size">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Box Position (px):</span>
+          <span class="info-value" id="info-box-pos">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Box Size (px):</span>
+          <span class="info-value" id="info-box-size">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Box Center:</span>
+          <span class="info-value" id="info-box-center">-</span>
+        </div>
+      </div>
+
+      <div class="canvas-preview">
+        <h3>Canvas Preview (136x166 with clipping)</h3>
+        <canvas id="crop-canvas" width="136" height="166"></canvas>
+        <p style="font-size: 11px; color: #888; margin-top: 5px;">Green: p_box / Red dashed: clipping region</p>
+      </div>
+    </div>
+
+    <div class="image-panel">
+      <div class="image-container" id="image-container">
+        <img id="preview-image" src="" alt="Preview" style="display: none;" crossorigin="anonymous">
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function loadImage() {
+      const url = document.getElementById('image-url').value;
+      const pboxStr = document.getElementById('pbox-coords').value;
+
+      let pbox;
+      try {
+        pbox = JSON.parse(pboxStr);
+        if (!Array.isArray(pbox) || pbox.length !== 4) {
+          alert('P-Box must be an array with 4 values: [x_min, y_min, x_max, y_max]');
+          return;
+        }
+      } catch (e) {
+        alert('Invalid JSON format for P-Box coordinates');
+        return;
+      }
+
+      const img = document.getElementById('preview-image');
+      img.onload = function() {
+        img.style.display = 'block';
+        drawPBox(this, pbox);
+        drawCropPreview(this, pbox);
+      };
+      img.onerror = function() {
+        alert('Failed to load image. Check the URL.');
+      };
+
+      // CORS 우회를 위해 프록시 사용 또는 직접 로드
+      if (url.startsWith('//')) {
+        img.src = 'https:' + url;
+      } else {
+        img.src = url;
+      }
+    }
+
+    function drawPBox(img, pbox) {
+      // 기존 오버레이 제거
+      const container = document.getElementById('image-container');
+      const oldOverlay = container.querySelector('.pbox-overlay');
+      if (oldOverlay) oldOverlay.remove();
+
+      const imgWidth = img.naturalWidth;
+      const imgHeight = img.naturalHeight;
+      const displayWidth = img.clientWidth;
+      const displayHeight = img.clientHeight;
+
+      // 스케일 계산
+      const scaleX = displayWidth / imgWidth;
+      const scaleY = displayHeight / imgHeight;
+
+      // p_box 좌표를 픽셀로 변환
+      const boxX1 = imgWidth * pbox[0];
+      const boxY1 = imgHeight * pbox[1];
+      const boxX2 = imgWidth * pbox[2];
+      const boxY2 = imgHeight * pbox[3];
+
+      const boxWidth = boxX2 - boxX1;
+      const boxHeight = boxY2 - boxY1;
+      const boxCenterX = (boxX1 + boxX2) / 2;
+      const boxCenterY = (boxY1 + boxY2) / 2;
+
+      // 정보 표시
+      document.getElementById('info-box').style.display = 'block';
+      document.getElementById('info-img-size').textContent = `${imgWidth} x ${imgHeight}px`;
+      document.getElementById('info-box-pos').textContent = `(${boxX1.toFixed(1)}, ${boxY1.toFixed(1)}) ~ (${boxX2.toFixed(1)}, ${boxY2.toFixed(1)})`;
+      document.getElementById('info-box-size').textContent = `${boxWidth.toFixed(1)} x ${boxHeight.toFixed(1)}px`;
+      document.getElementById('info-box-center').textContent = `(${boxCenterX.toFixed(1)}, ${boxCenterY.toFixed(1)})`;
+
+      // 오버레이 생성
+      const overlay = document.createElement('div');
+      overlay.className = 'pbox-overlay';
+      overlay.style.left = (boxX1 * scaleX) + 'px';
+      overlay.style.top = (boxY1 * scaleY) + 'px';
+      overlay.style.width = (boxWidth * scaleX) + 'px';
+      overlay.style.height = (boxHeight * scaleY) + 'px';
+
+      // 라벨 추가
+      const label = document.createElement('div');
+      label.className = 'pbox-label';
+      label.textContent = `P-Box: ${boxWidth.toFixed(0)}x${boxHeight.toFixed(0)}px`;
+      overlay.appendChild(label);
+
+      container.appendChild(overlay);
+    }
+
+    function drawCropPreview(img, pbox) {
+      const canvas = document.getElementById('crop-canvas');
+      const ctx = canvas.getContext('2d');
+
+      const imgWidth = img.naturalWidth;
+      const imgHeight = img.naturalHeight;
+
+      // p_box 좌표를 픽셀로 변환
+      const boxX1 = imgWidth * pbox[0];
+      const boxY1 = imgHeight * pbox[1];
+      const boxX2 = imgWidth * pbox[2];
+      const boxY2 = imgHeight * pbox[3];
+
+      const boxWidth = boxX2 - boxX1;
+      const boxHeight = boxY2 - boxY1;
+
+      // 실제 캔버스 크기 (136x166) - aedi-ad.js의 getCanvasParamFromPBox와 동일
+      const canvasW = 136;
+      const canvasH = 166;
+      const canvasRatio = canvasH / canvasW;
+
+      // 보이는 삼각형 영역: (0,0), (125,0), (0,165)
+      const DIAG_SLOPE = 165 / 125; // 1.32
+      const padding = 5;
+      const pboxAspect = boxWidth / boxHeight;
+
+      const maxW_right = 120 - padding;
+      const maxH_bottom = 160 - padding;
+      const maxW_diag = (165 - padding * (2 + DIAG_SLOPE)) / (1/pboxAspect + DIAG_SLOPE);
+
+      let targetPboxW = Math.min(maxW_right, maxW_diag);
+      let targetPboxH = targetPboxW / pboxAspect;
+
+      if (targetPboxH > maxH_bottom) {
+        targetPboxH = maxH_bottom;
+        targetPboxW = targetPboxH * pboxAspect;
+      }
+
+      const maxCropWidthNoClamping = (imgWidth - boxX1) / (1 - padding / canvasW);
+      let idealCropWidth = (boxWidth * canvasW) / targetPboxW;
+      let cropWidth = Math.min(idealCropWidth, maxCropWidthNoClamping);
+
+      const minCropWidth = boxWidth * 1.2;
+      if (cropWidth < minCropWidth) {
+        cropWidth = minCropWidth;
+      }
+
+      let cropHeight = cropWidth * canvasRatio;
+
+      if (cropWidth > imgWidth) {
+        cropWidth = imgWidth;
+        cropHeight = cropWidth * canvasRatio;
+      }
+      if (cropHeight > imgHeight) {
+        cropHeight = imgHeight;
+        cropWidth = cropHeight / canvasRatio;
+      }
+
+      let finalPboxW = (boxWidth / cropWidth) * canvasW;
+      let finalPboxH = (boxHeight / cropHeight) * canvasH;
+
+      // 삼각형 중심(centroid) 계산: (125/3, 165/3)
+      const triangleCenterX = 125 / 3;
+      const triangleCenterY = 165 / 3;
+
+      // p_box 중심
+      const boxCenterX = (boxX1 + boxX2) / 2;
+      const boxCenterY = (boxY1 + boxY2) / 2;
+
+      // cropX, cropY 계산: p_box 중심이 삼각형 중심에 오도록
+      let cropX = boxCenterX - (triangleCenterX * cropWidth / canvasW);
+      let cropY = boxCenterY - (triangleCenterY * cropHeight / canvasH);
+
+      // 이미지 경계 체크
+      if (cropX < 0) cropX = 0;
+      if (cropY < 0) cropY = 0;
+      if (cropX + cropWidth > imgWidth) cropX = imgWidth - cropWidth;
+      if (cropY + cropHeight > imgHeight) cropY = imgHeight - cropHeight;
+
+      // 최종 p_box 캔버스 위치
+      let finalPboxX1 = ((boxX1 - cropX) / cropWidth) * canvasW;
+      let finalPboxY1 = ((boxY1 - cropY) / cropHeight) * canvasH;
+      let finalPboxX2 = finalPboxX1 + finalPboxW;
+      let finalPboxY2 = finalPboxY1 + finalPboxH;
+
+      // 캔버스에 그리기 (클리핑 적용)
+      ctx.clearRect(0, 0, canvasW, canvasH);
+
+      // 클리핑 패스 설정
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(125, 0);
+      ctx.lineTo(0, 165);
+      ctx.lineTo(0, 0);
+      ctx.closePath();
+      ctx.clip();
+
+      // 이미지 그리기
+      ctx.drawImage(
+        img,
+        cropX, cropY, cropWidth, cropHeight,
+        0, 0, canvasW, canvasH
+      );
+
+      // 상품 박스 위치 표시
+      ctx.strokeStyle = '#00ff00';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(finalPboxX1, finalPboxY1, finalPboxX2 - finalPboxX1, finalPboxY2 - finalPboxY1);
+
+      ctx.restore();
+
+      // 클리핑 영역 경계선 표시
+      ctx.setLineDash([5, 5]);
+      ctx.strokeStyle = '#ff0000';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(125, 0);
+      ctx.lineTo(0, 165);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // Electron IPC로 데이터 수신
+    if (window.electronAPI) {
+      window.electronAPI.onLoadPBoxData((data) => {
+        if (data.adId) {
+          document.getElementById('ad-id').value = data.adId;
+          document.getElementById('ad-id-group').style.display = 'block';
+          document.querySelector('h1').textContent = 'P-Box Viewer - ' + data.adId;
+        }
+        if (data.img) {
+          document.getElementById('image-url').value = data.img;
+        }
+        if (data.pbox) {
+          const pboxStr = Array.isArray(data.pbox) ? JSON.stringify(data.pbox) : data.pbox;
+          document.getElementById('pbox-coords').value = pboxStr;
+        }
+
+        if (data.img && data.pbox) {
+          loadImage();
+        }
+      });
+    }
+
+    // URL 파라미터도 지원 (fallback)
+    window.onload = function() {
+      const params = new URLSearchParams(window.location.search);
+      const img = params.get('img');
+      const pbox = params.get('pbox');
+      const adId = params.get('adId');
+
+      if (img) document.getElementById('image-url').value = img;
+      if (pbox) document.getElementById('pbox-coords').value = pbox;
+      if (adId) {
+        document.getElementById('ad-id').value = adId;
+        document.getElementById('ad-id-group').style.display = 'block';
+        document.querySelector('h1').textContent = 'P-Box Viewer - ' + adId;
+      }
+
+      if (img && pbox) {
+        loadImage();
+      }
+    };
+  </script>
+</body>
+</html>

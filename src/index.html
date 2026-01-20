@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.aedi.ai; style-src 'self' 'unsafe-inline' https://*.aedi.ai; img-src * data: blob:; connect-src *; frame-src *;">
+  <title>AEDI Agent</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- 상단 URL 바 -->
+  <div class="toolbar">
+    <div class="url-bar">
+      <button id="btn-back" class="nav-btn" title="뒤로">←</button>
+      <button id="btn-forward" class="nav-btn" title="앞으로">→</button>
+      <button id="btn-reload" class="nav-btn" title="새로고침">↻</button>
+      <input type="text" id="url-input" placeholder="URL을 입력하세요 (예: https://example.com)">
+      <button id="btn-go" class="primary-btn">이동</button>
+    </div>
+    <div class="toolbar-actions">
+      <button id="btn-devtools" class="action-btn" title="개발자 도구">🔧</button>
+      <button id="btn-inject" class="action-btn primary" title="에이전트 주입">🤖 Agent</button>
+    </div>
+  </div>
+
+  <!-- 메인 컨텐츠 영역 -->
+  <div class="main-container">
+    <!-- 웹뷰 영역 -->
+    <div class="webview-container">
+      <webview id="webview" src="about:blank" webpreferences="contextIsolation=no, nodeIntegration=no"></webview>
+      <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="spinner"></div>
+        <span>Loading...</span>
+      </div>
+    </div>
+
+    <!-- 에이전트 패널 (오른쪽 사이드바) -->
+    <div id="agent-panel" class="agent-panel">
+      <div class="panel-header">
+        <h2>🤖 AEDI Agent <span class="version">v1.0.0</span></h2>
+        <button id="btn-close-panel" class="close-btn">×</button>
+      </div>
+
+      <div class="panel-content">
+        <!-- 국가 선택 -->
+        <div class="form-group">
+          <label>Nation / 국가</label>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" name="nation" value="kr" checked>
+              🇰🇷 한국 (Korea)
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="nation" value="th">
+              🇹🇭 태국 (Thailand)
+            </label>
+          </div>
+        </div>
+
+        <!-- API Key -->
+        <div class="form-group">
+          <label>API Key</label>
+          <input type="text" id="api-key" readonly class="highlight-input">
+        </div>
+
+        <!-- 이미지 선택 -->
+        <div class="form-group">
+          <label>Image Selector</label>
+          <div class="input-with-btn">
+            <input type="text" id="img-selector" placeholder="이미지를 선택하세요" readonly>
+            <button id="btn-select-images" class="icon-btn">🎯</button>
+            <button id="btn-clear-images" class="icon-btn danger">🗑</button>
+          </div>
+          <div class="helper-text" id="selected-count">선택된 이미지 없음</div>
+        </div>
+
+        <!-- 날짜 -->
+        <div class="form-group">
+          <label>Date (Auto-generated, ISO 8601)</label>
+          <input type="text" id="date-value" readonly class="success-input">
+        </div>
+
+        <!-- 옵션 -->
+        <div class="form-group">
+          <div class="checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="debug-mode" checked>
+              Debug Mode
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="auto-start">
+              Auto Start
+            </label>
+          </div>
+        </div>
+
+        <!-- 메인 버튼들 -->
+        <div class="btn-grid">
+          <button id="btn-save" class="btn primary">💾 Save</button>
+          <button id="btn-start" class="btn">▶ Start</button>
+          <button id="btn-stop" class="btn danger">⏹ Stop</button>
+          <button id="btn-restart" class="btn">🔄 Restart</button>
+        </div>
+
+        <!-- 추가 도구 -->
+        <div class="btn-grid" style="margin-top: 8px;">
+          <button id="btn-pbox" class="btn" style="grid-column: span 2;">📦 P-Box View</button>
+          <button id="btn-abf" class="btn" style="grid-column: span 2;">🎨 ABF Editor</button>
+        </div>
+
+        <!-- 통계 -->
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-value" id="stat-ads">0</div>
+            <div class="stat-label">Ads</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="stat-intervals">0</div>
+            <div class="stat-label">Intervals</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="stat-aedi">✗</div>
+            <div class="stat-label">AEDI</div>
+          </div>
+        </div>
+
+        <!-- 상태 -->
+        <div class="status-bar" id="status-bar">
+          <div class="status-dot"></div>
+          <span id="status-text">Ready</span>
+        </div>
+
+        <!-- 캡처된 광고 목록 -->
+        <div class="form-group" style="margin-top: 15px;">
+          <label>Captured Ads</label>
+          <div id="ad-list" class="ad-list">
+            <div class="ad-list-empty">광고 데이터가 없습니다</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

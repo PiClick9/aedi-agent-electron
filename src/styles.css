@@ -1,0 +1,502 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #0f0f1a;
+  color: #eee;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 상단 툴바 */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 15px;
+  background: #1a1a2e;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  gap: 15px;
+}
+
+.url-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.nav-btn {
+  width: 32px;
+  height: 32px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #ccc;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.2s;
+}
+
+.nav-btn:hover {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+}
+
+.url-bar input {
+  flex: 1;
+  padding: 8px 12px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #eee;
+  border-radius: 6px;
+  font-size: 13px;
+  outline: none;
+}
+
+.url-bar input:focus {
+  border-color: #00d4ff;
+  background: rgba(0,212,255,0.05);
+}
+
+.primary-btn {
+  padding: 8px 16px;
+  background: #00d4ff;
+  color: #000;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.primary-btn:hover {
+  background: #00b8e6;
+}
+
+.toolbar-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.action-btn {
+  padding: 8px 12px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+.action-btn:hover {
+  background: rgba(255,255,255,0.15);
+}
+
+.action-btn.primary {
+  background: rgba(0,212,255,0.2);
+  border-color: #00d4ff;
+  color: #00d4ff;
+}
+
+.action-btn.primary:hover {
+  background: #00d4ff;
+  color: #000;
+}
+
+/* 메인 컨테이너 */
+.main-container {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* 웹뷰 컨테이너 */
+.webview-container {
+  flex: 1;
+  position: relative;
+  background: #fff;
+}
+
+webview {
+  width: 100%;
+  height: 100%;
+}
+
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  color: #fff;
+  z-index: 100;
+}
+
+.loading-overlay.hidden {
+  display: none;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255,255,255,0.2);
+  border-top-color: #00d4ff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 에이전트 패널 */
+.agent-panel {
+  width: 350px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border-left: 1px solid rgba(255,255,255,0.1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.agent-panel.hidden {
+  display: none;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.panel-header h2 {
+  font-size: 14px;
+  color: #00d4ff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel-header .version {
+  font-size: 10px;
+  color: #888;
+  font-weight: normal;
+}
+
+.close-btn {
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #888;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.close-btn:hover {
+  background: #ff4757;
+  border-color: #ff4757;
+  color: #fff;
+}
+
+.panel-content {
+  flex: 1;
+  padding: 15px;
+  overflow-y: auto;
+}
+
+/* 폼 요소 */
+.form-group {
+  margin-bottom: 12px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 10px;
+  color: #888;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+
+.form-group input[type="text"] {
+  width: 100%;
+  padding: 8px 10px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #eee;
+  border-radius: 6px;
+  font-size: 12px;
+  outline: none;
+}
+
+.form-group input[type="text"]:focus {
+  border-color: #00d4ff;
+}
+
+.highlight-input {
+  background: rgba(0,212,255,0.1) !important;
+  color: #00d4ff !important;
+}
+
+.success-input {
+  background: rgba(46,213,115,0.1) !important;
+  color: #2ed573 !important;
+}
+
+.radio-group {
+  display: flex;
+  gap: 15px;
+  padding: 8px 0;
+}
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  color: #ccc;
+  font-size: 12px;
+}
+
+.radio-label input {
+  accent-color: #00d4ff;
+}
+
+.checkbox-group {
+  display: flex;
+  gap: 15px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  color: #ccc;
+  font-size: 12px;
+}
+
+.checkbox-label input {
+  accent-color: #00d4ff;
+}
+
+.input-with-btn {
+  display: flex;
+  gap: 6px;
+}
+
+.input-with-btn input {
+  flex: 1;
+}
+
+.icon-btn {
+  padding: 8px 10px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.icon-btn:hover {
+  background: #00d4ff;
+  color: #000;
+}
+
+.icon-btn.danger:hover {
+  background: #ff4757;
+  color: #fff;
+}
+
+.helper-text {
+  font-size: 10px;
+  color: #888;
+  margin-top: 4px;
+}
+
+/* 버튼 그리드 */
+.btn-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.btn {
+  padding: 8px 10px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 11px;
+  transition: all 0.2s;
+}
+
+.btn:hover {
+  background: #00d4ff;
+  color: #000;
+  border-color: #00d4ff;
+}
+
+.btn.primary {
+  background: #00d4ff;
+  color: #000;
+  border-color: #00d4ff;
+}
+
+.btn.danger {
+  border-color: #ff4757;
+}
+
+.btn.danger:hover {
+  background: #ff4757;
+  border-color: #ff4757;
+  color: #fff;
+}
+
+/* 통계 */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 15px;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 8px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 6px;
+}
+
+.stat-value {
+  font-size: 18px;
+  font-weight: bold;
+  color: #00d4ff;
+}
+
+.stat-label {
+  font-size: 9px;
+  color: #888;
+  text-transform: uppercase;
+}
+
+/* 상태바 */
+.status-bar {
+  margin-top: 12px;
+  padding: 10px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 6px;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-left: 3px solid #00d4ff;
+}
+
+.status-bar.success {
+  border-left-color: #2ed573;
+}
+
+.status-bar.error {
+  border-left-color: #ff4757;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #2ed573;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* 광고 목록 */
+.ad-list {
+  max-height: 150px;
+  overflow-y: auto;
+  background: rgba(0,0,0,0.2);
+  border-radius: 6px;
+  padding: 8px;
+}
+
+.ad-list-empty {
+  color: #666;
+  font-size: 11px;
+  text-align: center;
+  padding: 10px;
+}
+
+.ad-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 4px;
+  margin-bottom: 4px;
+  font-size: 11px;
+}
+
+.ad-item:last-child {
+  margin-bottom: 0;
+}
+
+.ad-item-name {
+  color: #00d4ff;
+}
+
+.ad-item-btn {
+  padding: 3px 8px;
+  background: rgba(0,212,255,0.2);
+  border: none;
+  color: #00d4ff;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 10px;
+}
+
+.ad-item-btn:hover {
+  background: #00d4ff;
+  color: #000;
+}
+
+/* 스크롤바 */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.05);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.2);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.3);
+}
