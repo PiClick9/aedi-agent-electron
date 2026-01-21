@@ -200,22 +200,81 @@ p_box: [x_min, y_min, x_max, y_max]  // 정규화된 값 (0~1 범위)
 
 ## 5. 기능별 동작 규칙
 
-### 5.1 웹사이트 로드
+### 5.1 앱 시작 화면 (Welcome Page)
 
 ```
-[규칙 5.1.1] URL 입력 시 프로토콜이 없으면 자동으로 https:// 추가
-[규칙 5.1.2] 로딩 중에는 오버레이 표시
-[규칙 5.1.3] 네비게이션 완료 시 URL 바 자동 업데이트
+[규칙 5.1.1] 앱 시작 시 welcome.html 페이지 자동 로드
+[규칙 5.1.2] 뉴스 사이트 바로가기 그리드 표시 (6개 사이트)
+[규칙 5.1.3] welcome 페이지 URL은 주소창에 표시하지 않음 (빈 값 유지)
 ```
 
-### 5.2 이미지 선택 모드 (중요!)
+**뉴스 사이트 목록:**
+| 사이트명 | URL |
+|----------|-----|
+| 뉴스원 | https://www.news1.kr/ |
+| 톱스타뉴스 | https://www.topstarnews.net/ |
+| 스타뉴스 | https://www.starnewskorea.com/ |
+| 뉴스펍 | https://www.newspub.kr/ |
+| 스타패션 | https://www.kstarfashion.com/ko-kr |
+| 스포츠투데이 | http://m.stoo.com/ |
+
+**Welcome 페이지 로드 코드:**
+```javascript
+// DOMContentLoaded 시 welcome 페이지 로드
+const welcomePath = await window.electronAPI.getWelcomePath();
+elements.webview.src = welcomePath;
+
+// URL 바에 welcome 페이지 경로 표시 안 함
+elements.webview.addEventListener('did-stop-loading', () => {
+  const currentUrl = elements.webview.getURL();
+  if (!currentUrl.includes('welcome.html')) {
+    elements.urlInput.value = currentUrl;
+  } else {
+    elements.urlInput.value = '';
+  }
+});
+```
+
+### 5.2 웹사이트 로드
 
 ```
-[규칙 5.2.1] 선택 모드 진입 시 커서를 crosshair로 변경
-[규칙 5.2.2] 이미지 클릭 시 토글 방식으로 선택/해제
-[규칙 5.2.3] ESC 키로 선택 모드 종료
-[규칙 5.2.4] 선택 완료 시 data-aedi-ad 속성 부여 (인덱스 번호)
-[규칙 5.2.5] webview에서는 require() 사용 불가 - polling 방식으로 선택 상태 확인
+[규칙 5.2.1] URL 입력 시 프로토콜이 없으면 자동으로 https:// 추가
+[규칙 5.2.2] 로딩 중에는 오버레이 표시
+[규칙 5.2.3] 네비게이션 완료 시 URL 바 자동 업데이트
+```
+
+### 5.3 이미지 선택 모드 (중요! - 즉시 확정 방식)
+
+```
+[규칙 5.3.1] 선택 모드 진입 시 커서를 crosshair로 변경
+[규칙 5.3.2] 이미지 클릭 시 즉시 data-aedi-ad 속성 부여 (확인 버튼 불필요!)
+[규칙 5.3.3] 다시 클릭하면 선택 해제 (토글)
+[규칙 5.3.4] ESC 키 또는 완료 버튼으로 선택 모드 종료
+[규칙 5.3.5] webview에서는 require() 사용 불가 - polling 방식으로 선택 상태 확인
+[규칙 5.3.6] 선택된 이미지 수가 실시간으로 UI에 반영됨
+```
+
+**즉시 확정 방식 코드:**
+```javascript
+window._aediClickHandler = function(e) {
+  if (!window._aediSelectMode) return;
+
+  const img = e.target.closest('img');
+  if (img) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (img.hasAttribute('data-aedi-ad')) {
+      // 선택 해제 - data-aedi-ad 제거
+      img.removeAttribute('data-aedi-ad');
+      // 스타일 제거...
+    } else {
+      // 즉시 확정 - data-aedi-ad 속성 바로 설정
+      img.setAttribute('data-aedi-ad', window._aediAdIndex++);
+      // 스타일 적용...
+    }
+  }
+};
 ```
 
 **선택된 이미지 스타일링 (CSS !important 필수):**
@@ -238,33 +297,78 @@ img.style.cssText = img.style.cssText
   .replace(/filter:[^;]+!important;?/g, '');
 ```
 
-### 5.3 광고 시작/중지
+### 5.4 Save 버튼 (기존 스크립트 제거 후 로컬 버전 주입)
 
 ```
-[규칙 5.3.1] Start 전 반드시 이미지 선택 필요 (없으면 에러 표시)
-[규칙 5.3.2] aedi.adOpen(apiKey, images, writingTime, null) 형식으로 호출
-[규칙 5.3.3] Stop 시 aedi.adCloseAll() 호출 및 interval 정리
-[규칙 5.3.4] Stop 시 canvas, link 객체 정리 및 DOM 요소 제거
-[규칙 5.3.5] Restart = Stop + 500ms 대기 + Start
-[규칙 5.3.6] Restart 시 _aediInstance를 null로 리셋 후 새로 생성
+[규칙 5.4.1] Save 클릭 시 기존 aedi-ad.js, aedi-ad.css 먼저 제거
+[규칙 5.4.2] 기존 Aedi 인스턴스 및 전역 객체 정리
+[규칙 5.4.3] 프로젝트 로컬 버전(src/aedi/)으로 새로 주입
+[규칙 5.4.4] 항상 새로운 스크립트로 덮어씀 (중복 체크 없음)
 ```
 
-### 5.4 P-Box Viewer
+**Save 버튼 동작 코드:**
+```javascript
+async function saveConfig() {
+  // 1. 기존 aedi-ad.js, aedi-ad.css 제거
+  await elements.webview.executeJavaScript(`
+    (function() {
+      // 기존 CSS 제거 (link 태그 + style 태그)
+      document.querySelectorAll('link[href*="aedi-ad"], style[data-aedi-css]').forEach(el => el.remove());
+
+      // 기존 JS 제거 (script 태그)
+      document.querySelectorAll('script[src*="aedi-ad"], script[data-aedi-script]').forEach(el => el.remove());
+
+      // Aedi 인스턴스 및 관련 전역 객체 제거
+      if (window._aediInstance) {
+        if (window._aediInstance.interval) {
+          Object.keys(window._aediInstance.interval).forEach(key => {
+            clearInterval(window._aediInstance.interval[key]);
+          });
+        }
+        window._aediInstance = null;
+      }
+
+      // Aedi 클래스 제거
+      if (typeof Aedi !== 'undefined') {
+        try { delete window.Aedi; } catch(e) {}
+      }
+
+      window.aedi_script = undefined;
+    })();
+  `);
+
+  // 2. 로컬 스크립트 주입
+  await injectAgent();
+}
+```
+
+### 5.5 광고 시작/중지
 
 ```
-[규칙 5.4.1] 별도 자식 윈도우로 열기
-[규칙 5.4.2] 이미 열려있으면 포커스만 이동
-[규칙 5.4.3] 메인 윈도우 닫히면 P-Box Viewer도 닫기
-[규칙 5.4.4] 광고 선택 드롭다운에서 ad_0, ad_1 등 선택하여 보기
-[규칙 5.4.5] aedi.canvas 객체의 키로 광고 ID 목록 조회
+[규칙 5.5.1] Start 전 반드시 이미지 선택 필요 (없으면 에러 표시)
+[규칙 5.5.2] aedi.adOpen(apiKey, images, writingTime, null) 형식으로 호출
+[규칙 5.5.3] Stop 시 aedi.adCloseAll() 호출 및 interval 정리
+[규칙 5.5.4] Stop 시 canvas, link 객체 정리 및 DOM 요소 제거
+[규칙 5.5.5] Restart = Stop + 500ms 대기 + Start
+[규칙 5.5.6] Restart 시 _aediInstance를 null로 리셋 후 새로 생성
 ```
 
-### 5.5 가이드 다운로드 기능
+### 5.6 P-Box Viewer
 
 ```
-[규칙 5.5.1] 웹뷰의 현재 URL 호스트명으로 파일명 생성 (예: www.news1.kr.txt)
-[규칙 5.5.2] 현재 설정된 API Key와 날짜가 자동 반영
-[규칙 5.5.3] Blob 생성 후 다운로드 링크로 저장
+[규칙 5.6.1] 별도 자식 윈도우로 열기
+[규칙 5.6.2] 이미 열려있으면 포커스만 이동
+[규칙 5.6.3] 메인 윈도우 닫히면 P-Box Viewer도 닫기
+[규칙 5.6.4] 광고 선택 드롭다운에서 ad_0, ad_1 등 선택하여 보기
+[규칙 5.6.5] aedi.canvas 객체의 키로 광고 ID 목록 조회
+```
+
+### 5.7 가이드 다운로드 기능
+
+```
+[규칙 5.7.1] 웹뷰의 현재 URL 호스트명으로 파일명 생성 (예: www.news1.kr.txt)
+[규칙 5.7.2] 현재 설정된 API Key와 날짜가 자동 반영
+[규칙 5.7.3] Blob 생성 후 다운로드 링크로 저장
 ```
 
 **가이드 템플릿:**
@@ -311,7 +415,7 @@ img.style.cssText = img.style.cssText
 ### 6.3 패널 동작
 ```
 [규칙 6.3.1] Agent 버튼 클릭 시 에이전트 패널 열기 + 스크립트 주입
-[규칙 6.3.2] Save 버튼 = Agent 버튼과 동일 (스크립트 재주입)
+[규칙 6.3.2] Save 버튼 = 기존 스크립트 제거 + 로컬 버전 새로 주입
 [규칙 6.3.3] X 버튼으로 패널 닫기 (숨기기만, 제거 아님)
 ```
 
@@ -533,6 +637,7 @@ aedi-agent-electron/
 │   ├── renderer.js      # UI 로직
 │   ├── index.html       # 메인 HTML
 │   ├── styles.css       # 스타일
+│   ├── welcome.html     # 앱 시작 화면 (뉴스 사이트 바로가기)
 │   ├── pbox-viewer.html # P-Box Viewer 윈도우
 │   └── aedi/            # AEDI 스크립트 (로컬)
 │       ├── aedi-ad.js
@@ -544,6 +649,33 @@ aedi-agent-electron/
 ├── package.json
 ├── Agent.md             # 이 문서
 └── .gitignore
+```
+
+---
+
+## 부록: IPC API 참조
+
+### main.js → preload.js → renderer.js
+
+| IPC 핸들러 | 용도 | 반환값 |
+|------------|------|--------|
+| `open-pbox-viewer` | P-Box Viewer 창 열기 | void |
+| `open-external-url` | 외부 URL 열기 | void |
+| `fetch-script` | 외부 스크립트 fetch (CORS 우회) | `{success, data/error}` |
+| `load-aedi-scripts` | 로컬 AEDI 스크립트 로드 | `{success, css, js/error}` |
+| `get-welcome-path` | welcome.html 파일 경로 | `file://...path` |
+
+### preload.js에서 노출되는 API (window.electronAPI)
+
+```javascript
+window.electronAPI = {
+  openPBoxViewer: (data) => ...,
+  openExternalUrl: (url) => ...,
+  onLoadPBoxData: (callback) => ...,
+  fetchScript: (url) => ...,
+  loadAediScripts: (nation) => ...,
+  getWelcomePath: () => ...
+};
 ```
 
 ---
