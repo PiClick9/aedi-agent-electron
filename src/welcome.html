@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AEDI Agent - Welcome</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .logo {
+      font-size: 48px;
+      margin-bottom: 10px;
+    }
+
+    h1 {
+      color: #fff;
+      font-size: 28px;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .subtitle {
+      color: #888;
+      font-size: 14px;
+      margin-bottom: 40px;
+    }
+
+    .sites-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 40px;
+    }
+
+    .site-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 24px 16px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+    }
+
+    .site-card:hover {
+      background: rgba(0, 217, 165, 0.1);
+      border-color: #00d9a5;
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0, 217, 165, 0.2);
+    }
+
+    .site-card:active {
+      transform: translateY(-2px);
+    }
+
+    .site-name {
+      color: #fff;
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .site-url {
+      color: #00d9a5;
+      font-size: 11px;
+      word-break: break-all;
+      opacity: 0.8;
+    }
+
+    .site-card:hover .site-url {
+      opacity: 1;
+    }
+
+    .footer {
+      color: #555;
+      font-size: 12px;
+    }
+
+    @media (max-width: 600px) {
+      .sites-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">🤖</div>
+    <h1>AEDI Agent</h1>
+    <p class="subtitle">광고 테스트를 위한 뉴스 사이트를 선택하세요</p>
+
+    <div class="sites-grid">
+      <a class="site-card" href="https://www.news1.kr/" data-url="https://www.news1.kr/">
+        <div class="site-name">뉴스원</div>
+        <div class="site-url">news1.kr</div>
+      </a>
+
+      <a class="site-card" href="https://www.topstarnews.net/" data-url="https://www.topstarnews.net/">
+        <div class="site-name">톱스타뉴스</div>
+        <div class="site-url">topstarnews.net</div>
+      </a>
+
+      <a class="site-card" href="https://www.starnewskorea.com/" data-url="https://www.starnewskorea.com/">
+        <div class="site-name">스타뉴스</div>
+        <div class="site-url">starnewskorea.com</div>
+      </a>
+
+      <a class="site-card" href="https://www.newspub.kr/" data-url="https://www.newspub.kr/">
+        <div class="site-name">뉴스펍</div>
+        <div class="site-url">newspub.kr</div>
+      </a>
+
+      <a class="site-card" href="https://www.kstarfashion.com/ko-kr" data-url="https://www.kstarfashion.com/ko-kr">
+        <div class="site-name">스타패션</div>
+        <div class="site-url">kstarfashion.com</div>
+      </a>
+
+      <a class="site-card" href="http://m.stoo.com/" data-url="http://m.stoo.com/">
+        <div class="site-name">스포츠투데이</div>
+        <div class="site-url">m.stoo.com</div>
+      </a>
+    </div>
+
+    <p class="footer">URL 바에 직접 주소를 입력할 수도 있습니다</p>
+  </div>
+</body>
+</html>

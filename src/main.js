@@ -125,6 +125,12 @@ ipcMain.handle('fetch-script', async (event, url) => {
   });
 });
 
+// Welcome 페이지 경로 반환
+ipcMain.handle('get-welcome-path', () => {
+  const welcomePath = path.join(__dirname, 'welcome.html');
+  return `file://${welcomePath.replace(/\\/g, '/')}`;
+});
+
 // 로컬 AEDI 스크립트 로드
 ipcMain.handle('load-aedi-scripts', async (event, nation) => {
   try {

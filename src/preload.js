@@ -17,5 +17,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   fetchScript: (url) => ipcRenderer.invoke('fetch-script', url),
 
   // 로컬 AEDI 스크립트 로드
-  loadAediScripts: (nation) => ipcRenderer.invoke('load-aedi-scripts', nation)
+  loadAediScripts: (nation) => ipcRenderer.invoke('load-aedi-scripts', nation),
+
+  // Welcome 페이지 경로 가져오기
+  getWelcomePath: () => ipcRenderer.invoke('get-welcome-path')
 });

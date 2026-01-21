@@ -31,11 +31,19 @@ const state = {
 const elements = {};
 
 // 초기화
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   initElements();
   initEventListeners();
   updateUI();
   generateDate();
+
+  // Welcome 페이지 로드
+  try {
+    const welcomePath = await window.electronAPI.getWelcomePath();
+    elements.webview.src = welcomePath;
+  } catch (err) {
+    console.error('Failed to load welcome page:', err);
+  }
 });
 
 function initElements() {
@@ -109,11 +117,22 @@ function initEventListeners() {
 
   elements.webview.addEventListener('did-stop-loading', () => {
     elements.loadingOverlay.classList.add('hidden');
-    elements.urlInput.value = elements.webview.getURL();
+    const currentUrl = elements.webview.getURL();
+    // Welcome 페이지는 URL 바에 표시하지 않음
+    if (!currentUrl.includes('welcome.html')) {
+      elements.urlInput.value = currentUrl;
+    } else {
+      elements.urlInput.value = '';
+    }
   });
 
   elements.webview.addEventListener('did-navigate', (e) => {
-    elements.urlInput.value = e.url;
+    // Welcome 페이지는 URL 바에 표시하지 않음
+    if (!e.url.includes('welcome.html')) {
+      elements.urlInput.value = e.url;
+    } else {
+      elements.urlInput.value = '';
+    }
   });
 
   // 웹뷰에서 콘솔 메시지 캡처
