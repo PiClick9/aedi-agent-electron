@@ -13,6 +13,7 @@ AEDI Agent는 **AEDI 광고 시스템 테스트 및 관리 도구**입니다.
 - 이미지 선택을 통한 광고 영역 지정
 - P-Box 좌표 시각화 및 크롭 미리보기
 - 한국/태국 서버 간 전환 테스트
+- 가이드 스크립트 생성 및 다운로드
 
 ---
 
@@ -207,15 +208,34 @@ p_box: [x_min, y_min, x_max, y_max]  // 정규화된 값 (0~1 범위)
 [규칙 5.1.3] 네비게이션 완료 시 URL 바 자동 업데이트
 ```
 
-### 5.2 이미지 선택 모드
+### 5.2 이미지 선택 모드 (중요!)
 
 ```
 [규칙 5.2.1] 선택 모드 진입 시 커서를 crosshair로 변경
 [규칙 5.2.2] 이미지 클릭 시 토글 방식으로 선택/해제
-[규칙 5.2.3] 선택된 이미지는 3px solid #00d4ff 아웃라인 표시
-[규칙 5.2.4] ESC 키로 선택 모드 종료
-[규칙 5.2.5] 선택 완료 시 data-aedi-ad 속성 부여 (인덱스 번호)
-[규칙 5.2.6] webview에서는 require() 사용 불가 - polling 방식으로 선택 상태 확인
+[규칙 5.2.3] ESC 키로 선택 모드 종료
+[규칙 5.2.4] 선택 완료 시 data-aedi-ad 속성 부여 (인덱스 번호)
+[규칙 5.2.5] webview에서는 require() 사용 불가 - polling 방식으로 선택 상태 확인
+```
+
+**선택된 이미지 스타일링 (CSS !important 필수):**
+```javascript
+// 사이트 CSS에 덮어씌워지지 않도록 !important 사용 필수!
+img.style.cssText += 'outline: 5px solid #00d9a5 !important; box-shadow: 0 0 20px 5px rgba(0, 217, 165, 0.8) !important; filter: brightness(1.1) !important;';
+```
+
+- **색상**: 에메랄드색 `#00d9a5`
+- **테두리**: `outline: 5px solid #00d9a5 !important`
+- **그림자**: `box-shadow: 0 0 20px 5px rgba(0, 217, 165, 0.8) !important`
+- **밝기 증가**: `filter: brightness(1.1) !important`
+
+**스타일 제거 시:**
+```javascript
+// !important 스타일은 일반적인 방법으로 제거 안됨 - cssText에서 직접 제거
+img.style.cssText = img.style.cssText
+  .replace(/outline:[^;]+!important;?/g, '')
+  .replace(/box-shadow:[^;]+!important;?/g, '')
+  .replace(/filter:[^;]+!important;?/g, '');
 ```
 
 ### 5.3 광고 시작/중지
@@ -237,6 +257,28 @@ p_box: [x_min, y_min, x_max, y_max]  // 정규화된 값 (0~1 범위)
 [규칙 5.4.3] 메인 윈도우 닫히면 P-Box Viewer도 닫기
 [규칙 5.4.4] 광고 선택 드롭다운에서 ad_0, ad_1 등 선택하여 보기
 [규칙 5.4.5] aedi.canvas 객체의 키로 광고 ID 목록 조회
+```
+
+### 5.5 가이드 다운로드 기능
+
+```
+[규칙 5.5.1] 웹뷰의 현재 URL 호스트명으로 파일명 생성 (예: www.news1.kr.txt)
+[규칙 5.5.2] 현재 설정된 API Key와 날짜가 자동 반영
+[규칙 5.5.3] Blob 생성 후 다운로드 링크로 저장
+```
+
+**가이드 템플릿:**
+```html
+// !중요! 반드시 기사 본문보다 아래에 삽입하셔야 합니다 !!
+<link rel='stylesheet' href='https://api.aedi.ai/common/css/v1/aedi-ad.css'>
+<script src='https://api.aedi.ai/common/js/v1/aedi-ad.js'></script>
+<script type='text/javascript'>
+    var AEDI_API_KEY = '${apiKey}'; //발급된 apikey
+    var aedi = new Aedi();
+    var aediWritingTime = '${date}';       // 반드시 기사 날짜가 입력되어야 광고가 노출됩니다.
+    var imgSelector = document.querySelectorAll('img[data-aedi-ad]');  // .img 해당 부분에 기사 이미지에 해당하는 Selector 요소를 입력해 주세요
+    aedi.adOpen(AEDI_API_KEY, imgSelector, aediWritingTime);
+</script>
 ```
 
 ---
@@ -262,7 +304,7 @@ p_box: [x_min, y_min, x_max, y_max]  // 정규화된 값 (0~1 범위)
 ┌─────────────────┐
 │ [드롭다운 ▼] 📦 │  ← P-Box Viewer (광고 선택)
 ├─────────────────┤
-│   ABF Editor    │
+│  📄 가이드 다운  │  ← AEDI 스크립트 가이드 다운로드
 └─────────────────┘
 ```
 
@@ -362,26 +404,43 @@ window._aediInstance = {
 | webview 빈 화면 | `webviewTag: true` 미설정 | BrowserWindow webPreferences에 추가 |
 | URL 이동 안됨 | src 속성 문제 | `elements.webview.src = url` 사용 |
 
+### 10.4 이미지 선택 스타일이 안보일 때
+
+| 증상 | 원인 | 해결 |
+|------|------|------|
+| 테두리/그림자가 표시 안됨 | 사이트 CSS가 덮어씀 | `!important` 사용 필수 |
+| 선택 해제 시 스타일 남음 | `style.outline = ''`로 제거 안됨 | `cssText`에서 직접 정규식으로 제거 |
+
 ---
 
 ## 11. 빌드 및 배포 규칙
 
 ### 11.1 빌드 명령어
 ```bash
-npm run build:win    # Windows (NSIS 인스톨러)
+npm run build:win    # Windows exe 생성
 npm run build:mac    # macOS (DMG)
 npm run build:linux  # Linux (AppImage)
 ```
 
-### 11.2 아이콘 규칙
+### 11.2 빌드 결과물
+
 ```
-assets/
-├── icon.ico   # Windows (256x256)
-├── icon.icns  # macOS
-└── icon.png   # Linux (512x512 권장)
+dist/
+├── win-unpacked/           # 압축 전 원본 폴더
+│   └── AEDI Agent.exe      # 실행 파일 (~169MB)
+├── AEDI-Agent-Portable.zip # 배포용 압축 파일 (~103MB)
+└── builder-debug.yml       # 빌드 로그
 ```
 
-### 11.3 앱 정보
+### 11.3 배포 방법
+
+```
+[규칙 11.3.1] dist/ 폴더는 .gitignore에 포함 - GitHub에 업로드하지 않음
+[규칙 11.3.2] AEDI-Agent-Portable.zip을 직접 공유 (이메일, 클라우드, USB 등)
+[규칙 11.3.3] 사용자는 압축 해제 후 "AEDI Agent.exe" 실행
+```
+
+### 11.4 앱 정보
 ```
 appId: com.aedi.agent
 productName: AEDI Agent
@@ -450,8 +509,45 @@ const result = await elements.webview.executeJavaScript(`
 `);
 ```
 
+### 이미지 선택 스타일 적용 패턴
+```javascript
+// 선택 시 - !important 사용 필수
+img.style.cssText += 'outline: 5px solid #00d9a5 !important; box-shadow: 0 0 20px 5px rgba(0, 217, 165, 0.8) !important; filter: brightness(1.1) !important;';
+
+// 해제 시 - cssText에서 직접 제거
+img.style.cssText = img.style.cssText
+  .replace(/outline:[^;]+!important;?/g, '')
+  .replace(/box-shadow:[^;]+!important;?/g, '')
+  .replace(/filter:[^;]+!important;?/g, '');
+```
+
+---
+
+## 부록: 프로젝트 파일 구조
+
+```
+aedi-agent-electron/
+├── src/
+│   ├── main.js          # Electron 메인 프로세스
+│   ├── preload.js       # 컨텍스트 브릿지
+│   ├── renderer.js      # UI 로직
+│   ├── index.html       # 메인 HTML
+│   ├── styles.css       # 스타일
+│   ├── pbox-viewer.html # P-Box Viewer 윈도우
+│   └── aedi/            # AEDI 스크립트 (로컬)
+│       ├── aedi-ad.js
+│       ├── aedi-ad.css
+│       ├── aedi-ad-th.js
+│       └── aedi-ad-th.css
+├── dist/                # 빌드 결과물 (gitignore)
+├── node_modules/        # 의존성 (gitignore)
+├── package.json
+├── Agent.md             # 이 문서
+└── .gitignore
+```
+
 ---
 
 *이 문서는 AEDI Agent Electron의 동작을 결정하는 기준 문서입니다. 모든 기능 구현 및 수정은 이 규칙을 따라야 합니다.*
 
-*최종 업데이트: 2024년 1월*
+*최종 업데이트: 2025년 1월*

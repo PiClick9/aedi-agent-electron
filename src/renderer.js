@@ -100,7 +100,7 @@ function initEventListeners() {
   document.getElementById('btn-stop').addEventListener('click', stopAd);
   document.getElementById('btn-restart').addEventListener('click', restartAd);
   document.getElementById('btn-pbox').addEventListener('click', openPBoxViewer);
-  document.getElementById('btn-abf').addEventListener('click', openAbfEditor);
+  document.getElementById('btn-guide').addEventListener('click', downloadGuide);
 
   // 웹뷰 이벤트
   elements.webview.addEventListener('did-start-loading', () => {
@@ -304,10 +304,13 @@ async function startImageSelectionMode() {
 
           if (img.hasAttribute('data-aedi-selected')) {
             img.removeAttribute('data-aedi-selected');
-            img.style.outline = '';
+            img.style.cssText = img.style.cssText
+              .replace(/outline:[^;]+!important;?/g, '')
+              .replace(/box-shadow:[^;]+!important;?/g, '')
+              .replace(/filter:[^;]+!important;?/g, '');
           } else {
             img.setAttribute('data-aedi-selected', 'true');
-            img.style.outline = '3px solid #00d4ff';
+            img.style.cssText += 'outline: 5px solid #00d9a5 !important; box-shadow: 0 0 20px 5px rgba(0, 217, 165, 0.8) !important; filter: brightness(1.1) !important;';
           }
 
           // 선택된 이미지 수 콘솔에 출력
@@ -384,7 +387,10 @@ async function clearImageSelection() {
     document.querySelectorAll('img[data-aedi-selected], img[data-aedi-ad]').forEach(img => {
       img.removeAttribute('data-aedi-selected');
       img.removeAttribute('data-aedi-ad');
-      img.style.outline = '';
+      img.style.cssText = img.style.cssText
+        .replace(/outline:[^;]+!important;?/g, '')
+        .replace(/box-shadow:[^;]+!important;?/g, '')
+        .replace(/filter:[^;]+!important;?/g, '');
     });
   `);
 
@@ -651,8 +657,47 @@ async function openPBoxViewer() {
   }
 }
 
-function openAbfEditor() {
-  updateStatus('ABF Editor는 아직 구현되지 않았습니다', 'info');
+async function downloadGuide() {
+  try {
+    // 웹뷰 URL에서 호스트명 추출
+    const webviewUrl = elements.webview.getURL();
+    if (!webviewUrl || webviewUrl === 'about:blank') {
+      updateStatus('먼저 웹사이트를 로드하세요', 'error');
+      return;
+    }
+
+    const url = new URL(webviewUrl);
+    const hostname = url.hostname;
+
+    // 가이드 템플릿 생성
+    const guideContent = `// !중요! 반드시 기사 본문보다 아래에 삽입하셔야 합니다 !!
+<link rel='stylesheet' href='https://api.aedi.ai/common/css/v1/aedi-ad.css'>
+<script src='https://api.aedi.ai/common/js/v1/aedi-ad.js'></script>
+<script type='text/javascript'>
+    var AEDI_API_KEY = '${state.apiKey}'; //발급된 apikey
+    var aedi = new Aedi();
+    var aediWritingTime = '${elements.dateValue.value}';       // 반드시 기사 날짜가 입력되어야 광고가 노출됩니다.
+    var imgSelector = document.querySelectorAll('img[data-aedi-ad]');  // .img 해당 부분에 기사 이미지에 해당하는 Selector 요소를 입력해 주세요
+    aedi.adOpen(AEDI_API_KEY, imgSelector, aediWritingTime);
+</script>`;
+
+    // Blob 생성 및 다운로드
+    const blob = new Blob([guideContent], { type: 'text/plain;charset=utf-8' });
+    const downloadUrl = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = `${hostname}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(downloadUrl);
+
+    updateStatus(`가이드 다운로드: ${hostname}.txt`, 'success');
+  } catch (e) {
+    updateStatus('가이드 다운로드 실패: ' + e.message, 'error');
+    console.error('[downloadGuide Error]', e);
+  }
 }
 
 // 광고 데이터 캡처 핸들러
