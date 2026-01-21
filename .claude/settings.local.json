@@ -3,7 +3,19 @@
     "allow": [
       "Bash(git remote add:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(npm start)",
+      "Bash(js-beautify)",
+      "Bash(dir \"C:\\\\Users\\\\PC-19\\\\Desktop\\\\piclick\\\\rnd9\\\\aedi-agent-electron\\\\dist\\\\*.zip\")",
+      "Bash(powershell Compress-Archive -Path win-unpacked -DestinationPath AEDI-Agent-Portable.zip -Force)",
+      "Bash(dir:*)",
+      "Bash(cmd /c \"dir C:\\\\Users\\\\PC-19\\\\Desktop\\\\piclick\\\\rnd9\\\\aedi-agent-electron\\\\dist\\\\*.zip\")",
+      "Bash(ls:*)",
+      "Bash(stat:*)",
+      "Bash(gh --version:*)",
+      "Bash(gh auth:*)",
+      "Bash(copy /Y src*.* \"dist\\\\win-unpacked\\\\resources\\\\app-extracted\\\\src\"\")"
     ]
   }
 }
