@@ -111,6 +111,13 @@ body {
   color: #000;
 }
 
+/* 모바일 버튼 활성화 상태 */
+.action-btn.active {
+  background: rgba(0,217,165,0.3);
+  border-color: #00d9a5;
+  color: #00d9a5;
+}
+
 /* 메인 컨테이너 */
 .main-container {
   flex: 1;
@@ -123,11 +130,29 @@ body {
   flex: 1;
   position: relative;
   background: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
 }
 
 webview {
   width: 100%;
   height: 100%;
+}
+
+/* 모바일 모드 */
+.webview-container.mobile-mode {
+  background: #2a2a3e;
+  padding: 20px;
+}
+
+.webview-container.mobile-mode webview {
+  width: 375px;
+  height: 100%;
+  max-height: calc(100vh - 100px);
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  border: 8px solid #1a1a2e;
 }
 
 .loading-overlay {

@@ -23,7 +23,7 @@
     }
 
     .container {
-      max-width: 800px;
+      max-width: 900px;
       width: 100%;
       text-align: center;
     }
@@ -48,7 +48,7 @@
 
     .sites-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 16px;
       margin-bottom: 40px;
     }
@@ -97,9 +97,86 @@
       font-size: 12px;
     }
 
-    @media (max-width: 600px) {
+    /* 태블릿 (768px 이하) - 3열 */
+    @media (max-width: 768px) {
+      .sites-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+      }
+
+      .site-card {
+        padding: 20px 12px;
+      }
+
+      .site-name {
+        font-size: 14px;
+      }
+
+      .site-url {
+        font-size: 10px;
+      }
+    }
+
+    /* 모바일 (480px 이하) - 2열 */
+    @media (max-width: 480px) {
+      body {
+        padding: 20px 12px;
+      }
+
+      .logo {
+        font-size: 36px;
+      }
+
+      h1 {
+        font-size: 22px;
+      }
+
+      .subtitle {
+        font-size: 12px;
+        margin-bottom: 24px;
+      }
+
       .sites-grid {
         grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+      }
+
+      .site-card {
+        padding: 16px 10px;
+        border-radius: 10px;
+      }
+
+      .site-card:hover {
+        transform: none;
+      }
+
+      .site-card:active {
+        background: rgba(0, 217, 165, 0.15);
+        border-color: #00d9a5;
+      }
+
+      .site-name {
+        font-size: 13px;
+        margin-bottom: 4px;
+      }
+
+      .site-url {
+        font-size: 9px;
+      }
+    }
+
+    /* 작은 모바일 (360px 이하) - 2열 유지, 더 컴팩트 */
+    @media (max-width: 360px) {
+      .sites-grid {
+        gap: 8px;
+      }
+
+      .site-card {
+        padding: 12px 8px;
+      }
+
+      .site-name {
+        font-size: 12px;
       }
     }
   </style>
@@ -140,9 +217,29 @@
         <div class="site-name">스포츠투데이</div>
         <div class="site-url">m.stoo.com</div>
       </a>
+
+      <a class="site-card" href="https://enter.etoday.co.kr/" data-url="https://enter.etoday.co.kr/">
+        <div class="site-name">비즈엔터</div>
+        <div class="site-url">enter.etoday.co.kr</div>
+      </a>
+
+      <a class="site-card" href="https://www.dispatch.co.kr/" data-url="https://www.dispatch.co.kr/">
+        <div class="site-name">디스패치</div>
+        <div class="site-url">dispatch.co.kr</div>
+      </a>
+
+      <a class="site-card" href="https://star.fnnews.com/" data-url="https://star.fnnews.com/">
+        <div class="site-name">파이낸셜뉴스</div>
+        <div class="site-url">star.fnnews.com</div>
+      </a>
+
+      <a class="site-card" href="https://www.naewoeilbo.com/" data-url="https://www.naewoeilbo.com/">
+        <div class="site-name">내외일보</div>
+        <div class="site-url">naewoeilbo.com</div>
+      </a>
     </div>
 
-    <p class="footer">URL 바에 직접 주소를 입력할 수도 있습니다</p>
+   
   </div>
 </body>
 </html>

@@ -8,20 +8,16 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <!-- 상단 URL 바 -->
+  <!-- 상단 툴바 -->
   <div class="toolbar">
-    <div class="url-bar">
-      <button id="btn-back" class="nav-btn" title="뒤로">←</button>
-      <button id="btn-forward" class="nav-btn" title="앞으로">→</button>
-      <button id="btn-reload" class="nav-btn" title="새로고침">↻</button>
-      <input type="text" id="url-input" placeholder="URL을 입력하세요 (예: https://example.com)">
-      <button id="btn-go" class="primary-btn">이동</button>
-    </div>
-    <div class="toolbar-actions">
+    <div class="toolbar-actions" style="margin-left: auto;">
+      <button id="btn-mobile" class="action-btn" title="모바일 보기 토글">📱</button>
       <button id="btn-devtools" class="action-btn" title="개발자 도구">🔧</button>
       <button id="btn-inject" class="action-btn primary" title="에이전트 주입">🤖 Agent</button>
     </div>
   </div>
+  <!-- 숨겨진 URL 입력 (내부 동작용) -->
+  <input type="hidden" id="url-input">
 
   <!-- 메인 컨텐츠 영역 -->
   <div class="main-container">

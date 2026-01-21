@@ -24,8 +24,12 @@ const state = {
   imageSelectionMode: false,
   selectionInterval: null,
   capturedAds: {},
-  aediLoaded: false
+  aediLoaded: false,
+  mobileMode: false
 };
+
+// 모바일 User Agent
+const MOBILE_USER_AGENT = 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1';
 
 // DOM 요소
 const elements = {};
@@ -65,16 +69,11 @@ function initElements() {
 }
 
 function initEventListeners() {
-  // URL 입력
-  document.getElementById('btn-go').addEventListener('click', navigateToUrl);
-  elements.urlInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') navigateToUrl();
-  });
+  // URL 입력 (숨겨진 상태 - 내부 동작용)
+  // 네비게이션은 welcome 페이지 바로가기로만 가능
 
-  // 네비게이션 버튼
-  document.getElementById('btn-back').addEventListener('click', () => elements.webview.goBack());
-  document.getElementById('btn-forward').addEventListener('click', () => elements.webview.goForward());
-  document.getElementById('btn-reload').addEventListener('click', () => elements.webview.reload());
+  // 모바일 보기 토글
+  document.getElementById('btn-mobile').addEventListener('click', toggleMobileView);
 
   // 개발자 도구
   document.getElementById('btn-devtools').addEventListener('click', () => {
@@ -177,6 +176,45 @@ function updateUI() {
     : '선택된 이미지 없음';
 
   elements.statAedi.textContent = state.aediLoaded ? '✓' : '✗';
+}
+
+// 모바일 보기 토글
+function toggleMobileView() {
+  state.mobileMode = !state.mobileMode;
+  const btn = document.getElementById('btn-mobile');
+  const webviewContainer = document.querySelector('.webview-container');
+
+  if (state.mobileMode) {
+    // 모바일 모드 활성화
+    btn.classList.add('active');
+    btn.title = '데스크톱 보기로 전환';
+
+    // 모바일 스타일 적용
+    webviewContainer.classList.add('mobile-mode');
+
+    // User Agent 변경 및 리로드
+    elements.webview.setUserAgent(MOBILE_USER_AGENT);
+
+    updateStatus('📱 모바일 보기 모드', 'info');
+  } else {
+    // 데스크톱 모드로 복귀
+    btn.classList.remove('active');
+    btn.title = '모바일 보기 토글';
+
+    // 모바일 스타일 제거
+    webviewContainer.classList.remove('mobile-mode');
+
+    // 기본 User Agent로 복귀
+    elements.webview.setUserAgent('');
+
+    updateStatus('🖥 데스크톱 보기 모드', 'info');
+  }
+
+  // 현재 페이지 리로드
+  const currentUrl = elements.webview.getURL();
+  if (currentUrl && !currentUrl.includes('welcome.html')) {
+    elements.webview.reload();
+  }
 }
 
 function generateDate() {
